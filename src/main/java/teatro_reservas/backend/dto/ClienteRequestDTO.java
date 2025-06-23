@@ -31,9 +31,6 @@ public class ClienteRequestDTO {
     @Pattern(regexp = "^[0-9]{7,8}$", message = "El DNI debe tener 7 u 8 dígitos")
     private String dni;
 
-    @Size(max = 200, message = "La dirección no puede exceder 200 caracteres")
-    private String direccion;
-
     @Past(message = "La fecha de nacimiento debe ser anterior a hoy")
     private java.time.LocalDate fechaNacimiento;
 }

@@ -5,7 +5,7 @@ import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import teatro_reservas.backend.dto.ClienteResponseDTO;
 import teatro_reservas.backend.dto.ClienteResumenDTO;
@@ -14,8 +14,6 @@ import teatro_reservas.backend.entity.Reserva;
 import teatro_reservas.backend.exception.ResourceNotFoundException;
 import teatro_reservas.backend.repository.ClienteRepository;
 import teatro_reservas.backend.repository.ReservaRepository;
-
-import java.awt.print.Pageable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -44,41 +42,6 @@ public class FidelizacionServiceImpl implements FidelizacionService {
         modelMapper.createTypeMap(Cliente.class, ClienteResponseDTO.class)
                 .addMapping(src -> src.esClienteFrecuente(), ClienteResponseDTO::setEsClienteFrecuente)
                 .addMapping(src -> src.getReservasActivas(), ClienteResponseDTO::setReservasActivas);
-    }
-
-    // Procesamiento de fidelización
-    @Override
-    public void procesarAsistenciaParaFidelizacion(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", clienteId));
-
-        // Incrementar eventos asistidos
-        cliente.procesarAsistenciaEvento();
-
-        // Verificar si merece pase gratuito
-        if (cumpleRequisitosParaPaseGratuito(clienteId)) {
-            otorgarPaseGratuito(clienteId);
-        }
-
-        clienteRepository.save(cliente);
-    }
-
-    @Override
-    public boolean cumpleRequisitosParaPaseGratuito(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", clienteId));
-
-        // Cada 5 eventos asistidos merece un pase gratuito
-        return cliente.getEventosAsistidos() > 0 && cliente.getEventosAsistidos() % 5 == 0;
-    }
-
-    @Override
-    public void otorgarPaseGratuito(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", clienteId));
-
-        cliente.setPasesGratuitos(cliente.getPasesGratuitos() + 1);
-        clienteRepository.save(cliente);
     }
 
     // Consultas de fidelización
@@ -166,23 +129,7 @@ public class FidelizacionServiceImpl implements FidelizacionService {
                 .collect(Collectors.toList());
     }
 
-    // Métodos adicionales útiles
-    public void actualizarSistemaFidelizacion() {
-        // Método para sincronizar el sistema de fidelización
-        List<Cliente> todosClientes = clienteRepository.findAll();
-
-        for (Cliente cliente : todosClientes) {
-            int eventosAsistidos = cliente.getEventosAsistidos();
-            int pasesQueDebeTener = eventosAsistidos / 5;
-
-            if (cliente.getPasesGratuitos() < pasesQueDebeTener) {
-                int pasesParaOtorgar = pasesQueDebeTener - cliente.getPasesGratuitos();
-                cliente.setPasesGratuitos(cliente.getPasesGratuitos() + pasesParaOtorgar);
-                clienteRepository.save(cliente);
-            }
-        }
-    }
-
+    // Estadísticas detalladas por cliente
     public Map<String, Object> obtenerEstadisticasDetalladasCliente(Long clienteId) {
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", clienteId));
@@ -214,28 +161,20 @@ public class FidelizacionServiceImpl implements FidelizacionService {
         return estadisticas;
     }
 
-    private long calcularTotalPasesUsados() {
-        // Contar reservas que fueron hechas con pase gratuito
-        return reservaRepository.findAll().stream()
-                .filter(Reserva::getEsPaseGratuito)
-                .count();
-    }
+    // Métodos administrativos
+    public void actualizarSistemaFidelizacion() {
+        // Método para sincronizar el sistema de fidelización (correcciones masivas)
+        List<Cliente> todosClientes = clienteRepository.findAll();
 
-    private List<ClienteResumenDTO> mapToClienteResumenDTOList(List<Cliente> clientes) {
-        return clientes.stream()
-                .map(cliente -> modelMapper.map(cliente, ClienteResumenDTO.class))
-                .collect(Collectors.toList());
-    }
+        for (Cliente cliente : todosClientes) {
+            int eventosAsistidos = cliente.getEventosAsistidos();
+            int pasesQueDebeTener = eventosAsistidos / 5;
 
-    @Transactional
-    public void procesarFidelizacionEnLote() {
-        List<Cliente> clientesElegibles = obtenerClientesElegiblesParaPase().stream()
-                .map(dto -> clienteRepository.findById(dto.getId()).orElse(null))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        for (Cliente cliente : clientesElegibles) {
-            procesarAsistenciaParaFidelizacion(cliente.getId());
+            if (cliente.getPasesGratuitos() < pasesQueDebeTener) {
+                int pasesParaOtorgar = pasesQueDebeTener - cliente.getPasesGratuitos();
+                cliente.setPasesGratuitos(cliente.getPasesGratuitos() + pasesParaOtorgar);
+                clienteRepository.save(cliente);
+            }
         }
     }
 
@@ -257,8 +196,6 @@ public class FidelizacionServiceImpl implements FidelizacionService {
                     .filter(Reserva::getEsPaseGratuito)
                     .count();
 
-            int pasesTotalesQueDebeHaber = pasesQueDebeTener + (int) pasesUsados;
-
             if (pasesActuales + pasesUsados < pasesQueDebeTener) {
                 inconsistencias.add(String.format(
                         "Cliente %s (%s): Debe tener %d pases pero solo tiene %d disponibles + %d usados",
@@ -276,5 +213,18 @@ public class FidelizacionServiceImpl implements FidelizacionService {
         reporte.put("sistemaIntegro", inconsistencias.isEmpty());
 
         return reporte;
+    }
+
+    // Métodos helper privados
+    private long calcularTotalPasesUsados() {
+        return reservaRepository.findAll().stream()
+                .filter(Reserva::getEsPaseGratuito)
+                .count();
+    }
+
+    private List<ClienteResumenDTO> mapToClienteResumenDTOList(List<Cliente> clientes) {
+        return clientes.stream()
+                .map(cliente -> modelMapper.map(cliente, ClienteResumenDTO.class))
+                .collect(Collectors.toList());
     }
 }

@@ -27,10 +27,8 @@ public interface ReservaService {
     List<ReservaResponseDTO> obtenerReservasPorEstado(EstadoReserva estado);
 
     // Gestión de estados
-    ReservaResponseDTO confirmarReserva(Long reservaId, BigDecimal precio);
+    ReservaResponseDTO confirmarReserva(Long reservaId);
     ReservaResponseDTO cancelarReserva(Long reservaId, String motivo);
-    ReservaResponseDTO marcarAsistencia(Long reservaId);
-    ReservaResponseDTO marcarNoAsistencia(Long reservaId);
 
     // Pases gratuitos
     ReservaResponseDTO crearReservaConPaseGratuito(Long clienteId, Long eventoId, TipoEntrada tipoEntrada);

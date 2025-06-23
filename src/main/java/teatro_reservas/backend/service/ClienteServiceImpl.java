@@ -3,9 +3,9 @@ package teatro_reservas.backend.service;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import teatro_reservas.backend.dto.ClienteRequestDTO;
 import teatro_reservas.backend.dto.ClienteResponseDTO;
@@ -14,7 +14,6 @@ import teatro_reservas.backend.entity.Cliente;
 import teatro_reservas.backend.exception.BusinessException;
 import teatro_reservas.backend.exception.ResourceNotFoundException;
 import teatro_reservas.backend.repository.ClienteRepository;
-import java.awt.print.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -130,21 +129,6 @@ public class ClienteServiceImpl implements ClienteService {
     public List<ClienteResumenDTO> obtenerClientesConPasesGratuitos() {
         List<Cliente> clientes = clienteRepository.findClientesConPasesGratuitos();
         return mapToClienteResumenDTOList(clientes);
-    }
-
-    @Override
-    public void procesarAsistenciaEvento(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", clienteId));
-
-        cliente.procesarAsistenciaEvento();
-
-        // Otorgar pase gratuito cada 5 eventos
-        if (cliente.getEventosAsistidos() % 5 == 0) {
-            cliente.setPasesGratuitos(cliente.getPasesGratuitos() + 1);
-        }
-
-        clienteRepository.save(cliente);
     }
 
     @Override

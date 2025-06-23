@@ -8,11 +8,6 @@ import java.util.Map;
 
 public interface FidelizacionService {
 
-    // Procesamiento de fidelización
-    void procesarAsistenciaParaFidelizacion(Long clienteId);
-    boolean cumpleRequisitosParaPaseGratuito(Long clienteId);
-    void otorgarPaseGratuito(Long clienteId);
-
     // Consultas de fidelización
     int contarAsistenciasEnAnoActual(Long clienteId);
     int calcularPasesGratuitosPendientes(Long clienteId);
@@ -21,4 +16,11 @@ public interface FidelizacionService {
     // Estadísticas de fidelización
     Map<String, Long> obtenerEstadisticasFidelizacion();
     List<ClienteResponseDTO> obtenerRankingClientesFrecuentes();
+
+    // Estadísticas detalladas
+    Map<String, Object> obtenerEstadisticasDetalladasCliente(Long clienteId);
+
+    // Métodos administrativos
+    void actualizarSistemaFidelizacion();
+    Map<String, Object> validarIntegridadSistema();
 }

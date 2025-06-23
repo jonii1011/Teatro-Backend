@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import teatro_reservas.backend.entity.enums.EstadoReserva;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,9 +45,18 @@ public class Cliente {
     @Size(max = 100, message = "El email no puede exceder 100 caracteres")
     private String email;
 
+    @Column(unique = true, length = 8)
+    @NotBlank(message = "El DNI es obligatorio")
+    @Pattern(regexp = "^[0-9]{7,8}$", message = "El DNI debe tener 7 u 8 dígitos")
+    private String dni;
+
     @Column(length = 20)
     @Pattern(regexp = "^[+]?[0-9\\s\\-()]{7,20}$", message = "Formato de teléfono inválido")
     private String telefono;
+
+    @Column(name = "fecha_nacimiento")
+    @Past(message = "La fecha de nacimiento debe ser anterior a hoy")
+    private LocalDate fechaNacimiento;
 
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     @CreationTimestamp

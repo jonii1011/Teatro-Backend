@@ -56,14 +56,4 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
     List<Object[]> findEventosMasPopulares(
             @Param("desde") LocalDateTime desde,
             @Param("hasta") LocalDateTime hasta);
-
-    // Verificar disponibilidad para tipo específico de entrada
-    @Query("SELECT CASE WHEN COUNT(r) < " +
-            "(SELECT cap.capacidad FROM e.capacidades cap WHERE KEY(cap) = :tipoEntrada) " +
-            "THEN true ELSE false END " +
-            "FROM Evento e LEFT JOIN e.reservas r ON r.estado = 'CONFIRMADA' AND r.tipoEntrada = :tipoEntrada " +
-            "WHERE e.id = :eventoId")
-    boolean tieneDisponibilidadParaTipo(
-            @Param("eventoId") Long eventoId,
-            @Param("tipoEntrada") TipoEntrada tipoEntrada);
 }

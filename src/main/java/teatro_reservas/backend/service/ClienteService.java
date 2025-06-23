@@ -23,7 +23,6 @@ public interface ClienteService {
 
     List<ClienteResumenDTO> obtenerClientesFrecuentes();
     List<ClienteResumenDTO> obtenerClientesConPasesGratuitos();
-    void procesarAsistenciaEvento(Long clienteId);
     boolean puedeUsarPaseGratuito(Long clienteId);
     void usarPaseGratuito(Long clienteId);
 

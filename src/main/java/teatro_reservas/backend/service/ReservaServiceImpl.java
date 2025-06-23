@@ -85,7 +85,13 @@ public class ReservaServiceImpl implements ReservaService {
         reserva.setTipoEntrada(reservaDTO.getTipoEntrada());
 
         // Manejar pase gratuito
-        if (reservaDTO.getUsarPaseGratuito() && cliente.tienePasesGratuitos()) {
+        if (reservaDTO.getUsarPaseGratuito()) {
+            // VALIDAR PRIMERO QUE TENGA PASES
+            if (!cliente.tienePasesGratuitos()) {
+                throw new BusinessException("El cliente no tiene pases gratuitos disponibles");
+            }
+
+            // Si llega aquí, sí tiene pases
             reserva.setEsPaseGratuito(true);
             reserva.setEstado(EstadoReserva.CONFIRMADA);
             reserva.setFechaConfirmacion(LocalDateTime.now());
@@ -95,6 +101,7 @@ public class ReservaServiceImpl implements ReservaService {
             cliente.usarPaseGratuito();
             clienteRepository.save(cliente);
         } else {
+            // Reserva normal (sin pase gratuito)
             reserva.setEsPaseGratuito(false);
             reserva.setEstado(EstadoReserva.PENDIENTE);
         }
@@ -155,7 +162,7 @@ public class ReservaServiceImpl implements ReservaService {
 
     // Gestión de estados
     @Override
-    public ReservaResponseDTO confirmarReserva(Long reservaId, BigDecimal precio) {
+    public ReservaResponseDTO confirmarReserva(Long reservaId) {
         Reserva reserva = reservaRepository.findById(reservaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva", "id", reservaId));
 
@@ -167,11 +174,20 @@ public class ReservaServiceImpl implements ReservaService {
             throw new BusinessException("La reserva no está vigente");
         }
 
-        if (precio.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessException("El precio no puede ser negativo");
+        // CALCULAR PRECIO AUTOMÁTICAMENTE
+        BigDecimal precioCorrect = reserva.getEvento().getPrecios().get(reserva.getTipoEntrada());
+        if (precioCorrect == null) {
+            throw new BusinessException("No se puede determinar el precio para este tipo de entrada");
         }
 
-        reserva.confirmar(precio);
+        // USAR EL PRECIO CORRECTO, NO EL PARÁMETRO
+        reserva.confirmar(precioCorrect);
+
+        // Procesar fidelización
+        Cliente cliente = reserva.getCliente();
+        cliente.procesarAsistenciaEvento();
+        clienteRepository.save(cliente);
+
         Reserva reservaActualizada = reservaRepository.save(reserva);
         return mapToReservaResponseDTO(reservaActualizada);
     }
@@ -193,45 +209,6 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         reserva.cancelar(motivo);
-        Reserva reservaActualizada = reservaRepository.save(reserva);
-        return mapToReservaResponseDTO(reservaActualizada);
-    }
-
-    @Override
-    public ReservaResponseDTO marcarAsistencia(Long reservaId) {
-        Reserva reserva = reservaRepository.findById(reservaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reserva", "id", reservaId));
-
-        if (reserva.getEstado() != EstadoReserva.CONFIRMADA) {
-            throw new BusinessException("Solo se puede marcar asistencia en reservas confirmadas");
-        }
-
-        reserva.setEstado(EstadoReserva.ASISTIO);
-
-        // Procesar para fidelización
-        Cliente cliente = reserva.getCliente();
-        cliente.procesarAsistenciaEvento();
-
-        // Otorgar pase gratuito cada 5 eventos
-        if (cliente.getEventosAsistidos() % 5 == 0) {
-            cliente.setPasesGratuitos(cliente.getPasesGratuitos() + 1);
-        }
-
-        clienteRepository.save(cliente);
-        Reserva reservaActualizada = reservaRepository.save(reserva);
-        return mapToReservaResponseDTO(reservaActualizada);
-    }
-
-    @Override
-    public ReservaResponseDTO marcarNoAsistencia(Long reservaId) {
-        Reserva reserva = reservaRepository.findById(reservaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reserva", "id", reservaId));
-
-        if (reserva.getEstado() != EstadoReserva.CONFIRMADA) {
-            throw new BusinessException("Solo se puede marcar no asistencia en reservas confirmadas");
-        }
-
-        reserva.setEstado(EstadoReserva.NO_ASISTIO);
         Reserva reservaActualizada = reservaRepository.save(reserva);
         return mapToReservaResponseDTO(reservaActualizada);
     }
