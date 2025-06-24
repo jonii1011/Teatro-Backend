@@ -220,9 +220,9 @@ El sistema incluye datos de prueba que se insertan automáticamente con el scrip
 
 ## 👨‍💻 Autor
 
-**[Jonathan Vera]**
-- Email: [jonii10lea@gmail.com]
-- LinkedIn: [www.linkedin.com/in/jonathan-vera-0b9784241]
+**Jonathan Vera**
+- Email: jonii10lea@gmail.com
+- LinkedIn: www.linkedin.com/in/jonathan-vera-0b9784241
 
 ### Problemas Comunes
 - **Error de conexión MySQL**: Verificar que el servicio esté iniciado
