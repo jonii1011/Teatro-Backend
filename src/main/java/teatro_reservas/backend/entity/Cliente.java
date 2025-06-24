@@ -80,7 +80,7 @@ public class Cliente {
     @JsonManagedReference("cliente-reservas")
     private List<Reserva> reservas = new ArrayList<>();
 
-    // ✅ Métodos de ciclo de vida JPA
+    // Métodos de ciclo de vida JPA
     @PrePersist
     protected void onCreate() {
         if (fechaRegistro == null) {

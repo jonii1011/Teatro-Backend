@@ -50,17 +50,19 @@ public class Reserva {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @NotNull(message = "El estado es obligatorio")
-    private EstadoReserva estado = EstadoReserva.PENDIENTE;
+    private EstadoReserva estado = EstadoReserva.CONFIRMADA;
 
     @Column(name = "es_pase_gratuito", nullable = false)
     @NotNull
     private Boolean esPaseGratuito = false;
 
-    @Column(name = "precio_pagado", precision = 10, scale = 2)
+    @Column(name = "precio_pagado", precision = 10, scale = 2, nullable = false)
     @DecimalMin(value = "0.00", message = "El precio no puede ser negativo")
-    private BigDecimal precioPagado;
+    @NotNull(message = "El precio pagado es obligatorio")
+    private BigDecimal precioPagado = BigDecimal.ZERO;
 
-    @Column(name = "fecha_confirmacion")
+    @Column(name = "fecha_confirmacion", nullable = false)
+    @NotNull(message = "La fecha de confirmación es obligatoria")
     private LocalDateTime fechaConfirmacion;
 
     @Column(name = "fecha_cancelacion")
@@ -74,18 +76,14 @@ public class Reserva {
     @NotBlank(message = "El código de reserva es obligatorio")
     private String codigoReserva;
 
-
     @PrePersist
     private void generarCodigoReserva() {
         if (codigoReserva == null) {
             codigoReserva = "RES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         }
-    }
-
-    public void confirmar(BigDecimal precio) {
-        this.estado = EstadoReserva.CONFIRMADA;
-        this.fechaConfirmacion = LocalDateTime.now();
-        this.precioPagado = precio;
+        if (fechaConfirmacion == null) {
+            fechaConfirmacion = LocalDateTime.now();
+        }
     }
 
     public void cancelar(String motivo) {
@@ -95,15 +93,13 @@ public class Reserva {
     }
 
     public boolean puedeSerCancelada() {
-        return estado == EstadoReserva.CONFIRMADA || estado == EstadoReserva.PENDIENTE;
+        return estado == EstadoReserva.CONFIRMADA;
     }
 
     public boolean estaVigente() {
-        return (estado == EstadoReserva.CONFIRMADA || estado == EstadoReserva.PENDIENTE)
-                && evento.estaVigente();
+        return estado == EstadoReserva.CONFIRMADA && evento.estaVigente();
     }
 
-    // Para el frontend - información resumida
     public String getResumenReserva() {
         return String.format("%s - %s - %s",
                 codigoReserva,

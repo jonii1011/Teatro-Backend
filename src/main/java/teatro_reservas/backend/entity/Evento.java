@@ -1,5 +1,6 @@
 package teatro_reservas.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -41,6 +42,7 @@ public class Evento {
     @Column(name = "fecha_hora", nullable = false)
     @NotNull(message = "La fecha y hora son obligatorias")
     @Future(message = "La fecha del evento debe ser futura")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "America/Argentina/Buenos_Aires")
     private LocalDateTime fechaHora;
 
     @Enumerated(EnumType.STRING)

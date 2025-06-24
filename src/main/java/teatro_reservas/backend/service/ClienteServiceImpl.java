@@ -75,6 +75,8 @@ public class ClienteServiceImpl implements ClienteService {
         cliente.setApellido(clienteDTO.getApellido());
         cliente.setEmail(clienteDTO.getEmail());
         cliente.setTelefono(clienteDTO.getTelefono());
+        cliente.setDni(clienteDTO.getDni());
+        cliente.setFechaNacimiento(clienteDTO.getFechaNacimiento());
 
         Cliente clienteActualizado = clienteRepository.save(cliente);
         return modelMapper.map(clienteActualizado, ClienteResponseDTO.class);
@@ -85,6 +87,14 @@ public class ClienteServiceImpl implements ClienteService {
         Cliente cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", id));
         cliente.setActivo(false);
+        clienteRepository.save(cliente);
+    }
+
+    @Override
+    public void activarCliente(Long id){
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", id));
+        cliente.setActivo(true);
         clienteRepository.save(cliente);
     }
 

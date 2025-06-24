@@ -96,9 +96,7 @@ public class EventoServiceImpl implements EventoService {
             throw new BusinessException("No se puede eliminar un evento con reservas confirmadas");
         }
 
-        // Soft delete
-        evento.setActivo(false);
-        eventoRepository.save(evento);
+        eventoRepository.delete(evento);
     }
 
     // Consultas básicas

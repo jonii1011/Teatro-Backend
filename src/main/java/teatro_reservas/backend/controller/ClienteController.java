@@ -95,6 +95,25 @@ public class ClienteController {
         return ResponseEntity.noContent().build();
     }
 
+
+    @PutMapping("/{id}/activar")
+    @Operation(
+            summary = "Activar cliente",
+            description = "Activa un cliente que previamente había sido desactivado en el sistema"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Cliente activado exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Cliente no encontrado"),
+            @ApiResponse(responseCode = "400", description = "El cliente ya está activo")
+    })
+    public ResponseEntity<Void> activarCliente(
+            @PathVariable @Parameter(description = "ID del cliente a activar") Long id) {
+        clienteService.activarCliente(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
+
     @GetMapping
     @Operation(
             summary = "Obtener todos los clientes",

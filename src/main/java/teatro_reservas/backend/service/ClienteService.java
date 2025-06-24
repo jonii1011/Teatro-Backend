@@ -15,6 +15,7 @@ public interface ClienteService {
     ClienteResponseDTO obtenerClientePorId(Long id);
     ClienteResponseDTO actualizarCliente(Long id, ClienteRequestDTO clienteDTO);
     void eliminarCliente(Long id); // soft delete
+    void activarCliente(Long id);
 
     List<ClienteResponseDTO> obtenerTodosLosClientes();
     List<ClienteResumenDTO> obtenerClientesActivos();
