@@ -14,6 +14,8 @@ public class ClienteResponseDTO {
     private String apellido;
     private String email;
     private String telefono;
+    private String dni;
+    private java.time.LocalDate fechaNacimiento;
     private LocalDateTime fechaRegistro;
     private Integer eventosAsistidos;
     private Integer pasesGratuitos;

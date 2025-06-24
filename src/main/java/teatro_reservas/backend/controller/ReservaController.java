@@ -147,22 +147,6 @@ public class ReservaController {
         return ResponseEntity.ok(reservas);
     }
 
-    // Gestión de estados
-    @PutMapping("/{id}/confirmar")
-    @Operation(
-            summary = "Confirmar reserva",
-            description = "Confirma una reserva pendiente registrando el pago. Solo se pueden confirmar reservas en estado PENDIENTE."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Reserva confirmada exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Solo se pueden confirmar reservas pendientes"),
-            @ApiResponse(responseCode = "404", description = "Reserva no encontrada")
-    })
-    public ResponseEntity<ReservaResponseDTO> confirmarReserva(@PathVariable Long id) {
-        ReservaResponseDTO reserva = reservaService.confirmarReserva(id);
-        return ResponseEntity.ok(reserva);
-    }
-
     @PutMapping("/{id}/cancelar")
     @Operation(
             summary = "Cancelar reserva",
@@ -212,30 +196,6 @@ public class ReservaController {
         return ResponseEntity.ok(reservas);
     }
 
-    @GetMapping("/pendientes-vencidas")
-    @Operation(
-            summary = "Reservas pendientes vencidas",
-            description = "Obtiene reservas que están pendientes de pago más allá del tiempo límite especificado"
-    )
-    @ApiResponse(responseCode = "200", description = "Lista de reservas vencidas obtenida")
-    public ResponseEntity<List<ReservaResponseDTO>> obtenerReservasPendientesVencidas(
-            @RequestParam(defaultValue = "24") @Parameter(description = "Horas de vencimiento", example = "24") int horasVencimiento) {
-        List<ReservaResponseDTO> reservas = reservaService.obtenerReservasPendientesVencidas(horasVencimiento);
-        return ResponseEntity.ok(reservas);
-    }
-
-    @GetMapping("/expiran-pronto")
-    @Operation(
-            summary = "Reservas que expiran pronto",
-            description = "Obtiene reservas cuyos eventos ocurrirán pronto (útil para recordatorios)"
-    )
-    @ApiResponse(responseCode = "200", description = "Lista de reservas próximas a expirar")
-    public ResponseEntity<List<ReservaResponseDTO>> obtenerReservasQueExpiranPronto(
-            @RequestParam(defaultValue = "24") @Parameter(description = "Horas antes del evento", example = "24") int horasAntes) {
-        List<ReservaResponseDTO> reservas = reservaService.obtenerReservasQueExpiranPronto(horasAntes);
-        return ResponseEntity.ok(reservas);
-    }
-
     // Validaciones
     @GetMapping("/{id}/validar-cancelable")
     @Operation(
@@ -249,21 +209,6 @@ public class ReservaController {
     public ResponseEntity<Void> validarReservaCancelable(
             @PathVariable @Parameter(description = "ID de la reserva") Long id) {
         reservaService.validarReservaCancelable(id);
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/{id}/validar-confirmable")
-    @Operation(
-            summary = "Validar si reserva es confirmable",
-            description = "Valida si una reserva puede ser confirmada (debe estar en estado PENDIENTE)"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "La reserva puede ser confirmada"),
-            @ApiResponse(responseCode = "400", description = "Solo se pueden confirmar reservas pendientes")
-    })
-    public ResponseEntity<Void> validarReservaConfirmable(
-            @PathVariable @Parameter(description = "ID de la reserva") Long id) {
-        reservaService.validarReservaConfirmable(id);
         return ResponseEntity.ok().build();
     }
 
@@ -355,29 +300,6 @@ public class ReservaController {
         resumen.put("puedeSerCancelada", reserva.getPuedeSerCancelada());
 
         return ResponseEntity.ok(resumen);
-    }
-
-    @PostMapping("/crear-y-confirmar")
-    @Operation(
-            summary = "Crear y confirmar reserva",
-            description = "Crea una reserva y la confirma inmediatamente en una sola operación (excepto pases gratuitos)"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Reserva creada y confirmada exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Error en creación o confirmación")
-    })
-    public ResponseEntity<ReservaResponseDTO> crearYConfirmarReserva(
-            @Valid @RequestBody @Parameter(description = "Datos de la reserva") ReservaRequestDTO reservaDTO) {
-
-        // Crear la reserva
-        ReservaResponseDTO reserva = reservaService.crearReserva(reservaDTO);
-
-        // Si no es pase gratuito, confirmarla inmediatamente
-        if (!reserva.getEsPaseGratuito()) {
-            reserva = reservaService.confirmarReserva(reserva.getId());
-        }
-
-        return ResponseEntity.ok(reserva);
     }
 
     @GetMapping("/{id}/historial")

@@ -27,7 +27,6 @@ public interface ReservaService {
     List<ReservaResponseDTO> obtenerReservasPorEstado(EstadoReserva estado);
 
     // Gestión de estados
-    ReservaResponseDTO confirmarReserva(Long reservaId);
     ReservaResponseDTO cancelarReserva(Long reservaId, String motivo);
 
     // Pases gratuitos
@@ -35,12 +34,9 @@ public interface ReservaService {
 
     // Consultas específicas
     List<ReservaResponseDTO> obtenerReservasConfirmadas(Long clienteId);
-    List<ReservaResponseDTO> obtenerReservasPendientesVencidas(int horasVencimiento);
-    List<ReservaResponseDTO> obtenerReservasQueExpiranPronto(int horasAntes);
 
     // Validaciones
     void validarReservaCancelable(Long reservaId);
-    void validarReservaConfirmable(Long reservaId);
     boolean puedeCrearReserva(Long clienteId, Long eventoId, TipoEntrada tipoEntrada);
 
     // Estadísticas y reportes

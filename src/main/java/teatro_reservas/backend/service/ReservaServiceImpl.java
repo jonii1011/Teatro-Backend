@@ -83,6 +83,8 @@ public class ReservaServiceImpl implements ReservaService {
         reserva.setCliente(cliente);
         reserva.setEvento(evento);
         reserva.setTipoEntrada(reservaDTO.getTipoEntrada());
+        reserva.setEstado(EstadoReserva.CONFIRMADA);
+        reserva.setFechaConfirmacion(LocalDateTime.now());
 
         // Manejar pase gratuito
         if (reservaDTO.getUsarPaseGratuito()) {
@@ -93,18 +95,25 @@ public class ReservaServiceImpl implements ReservaService {
 
             // Si llega aquí, sí tiene pases
             reserva.setEsPaseGratuito(true);
-            reserva.setEstado(EstadoReserva.CONFIRMADA);
-            reserva.setFechaConfirmacion(LocalDateTime.now());
             reserva.setPrecioPagado(BigDecimal.ZERO);
 
             // Usar el pase gratuito
             cliente.usarPaseGratuito();
-            clienteRepository.save(cliente);
         } else {
             // Reserva normal (sin pase gratuito)
             reserva.setEsPaseGratuito(false);
-            reserva.setEstado(EstadoReserva.PENDIENTE);
+
+            //Obtener y guardar precio del evento
+            BigDecimal precio = evento.getPrecios().get(reservaDTO.getTipoEntrada());
+            if (precio == null) {
+                throw new BusinessException("No se puede determinar el precio para este tipo de entrada");
+            }
+            reserva.setPrecioPagado(precio);  // Guardar precio inmediatamente
         }
+
+        //Procesar fidelización al crear reserva
+        cliente.procesarAsistenciaEvento();
+        clienteRepository.save(cliente);  // Guardar cliente con fidelización actualizada
 
         Reserva reservaGuardada = reservaRepository.save(reserva);
         return mapToReservaResponseDTO(reservaGuardada);
@@ -160,38 +169,6 @@ public class ReservaServiceImpl implements ReservaService {
         return mapToReservaResponseDTOList(reservas);
     }
 
-    // Gestión de estados
-    @Override
-    public ReservaResponseDTO confirmarReserva(Long reservaId) {
-        Reserva reserva = reservaRepository.findById(reservaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reserva", "id", reservaId));
-
-        if (reserva.getEstado() != EstadoReserva.PENDIENTE) {
-            throw new BusinessException("Solo se pueden confirmar reservas pendientes");
-        }
-
-        if (!reserva.estaVigente()) {
-            throw new BusinessException("La reserva no está vigente");
-        }
-
-        // CALCULAR PRECIO AUTOMÁTICAMENTE
-        BigDecimal precioCorrect = reserva.getEvento().getPrecios().get(reserva.getTipoEntrada());
-        if (precioCorrect == null) {
-            throw new BusinessException("No se puede determinar el precio para este tipo de entrada");
-        }
-
-        // USAR EL PRECIO CORRECTO, NO EL PARÁMETRO
-        reserva.confirmar(precioCorrect);
-
-        // Procesar fidelización
-        Cliente cliente = reserva.getCliente();
-        cliente.procesarAsistenciaEvento();
-        clienteRepository.save(cliente);
-
-        Reserva reservaActualizada = reservaRepository.save(reserva);
-        return mapToReservaResponseDTO(reservaActualizada);
-    }
-
     @Override
     public ReservaResponseDTO cancelarReserva(Long reservaId, String motivo) {
         Reserva reserva = reservaRepository.findById(reservaId)
@@ -232,21 +209,6 @@ public class ReservaServiceImpl implements ReservaService {
         return mapToReservaResponseDTOList(reservas);
     }
 
-    @Override
-    public List<ReservaResponseDTO> obtenerReservasPendientesVencidas(int horasVencimiento) {
-        LocalDateTime limite = LocalDateTime.now().minusHours(horasVencimiento);
-        List<Reserva> reservas = reservaRepository.findReservasPendientesVencidas(limite);
-        return mapToReservaResponseDTOList(reservas);
-    }
-
-    @Override
-    public List<ReservaResponseDTO> obtenerReservasQueExpiranPronto(int horasAntes) {
-        LocalDateTime ahora = LocalDateTime.now();
-        LocalDateTime limite = ahora.plusHours(horasAntes);
-        List<Reserva> reservas = reservaRepository.findReservasQueExpiranPronto(ahora, limite);
-        return mapToReservaResponseDTOList(reservas);
-    }
-
     // Validaciones
     @Override
     public void validarReservaCancelable(Long reservaId) {
@@ -255,16 +217,6 @@ public class ReservaServiceImpl implements ReservaService {
 
         if (!reserva.puedeSerCancelada()) {
             throw new BusinessException("La reserva no puede ser cancelada");
-        }
-    }
-
-    @Override
-    public void validarReservaConfirmable(Long reservaId) {
-        Reserva reserva = reservaRepository.findById(reservaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reserva", "id", reservaId));
-
-        if (reserva.getEstado() != EstadoReserva.PENDIENTE) {
-            throw new BusinessException("Solo se pueden confirmar reservas pendientes");
         }
     }
 
